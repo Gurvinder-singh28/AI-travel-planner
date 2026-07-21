@@ -33,13 +33,13 @@ def construct_graph() -> StateGraph:
     # 3. Conditional routing:
     # Route either to DossierCompositor on error, or to FlightExplorer to start parallel flow
     builder.add_conditional_edges(
-        "Planner",
-        evaluate_extraction_sanity,
-        {
-            "short_circuit_exit": "DossierCompositor",
-            "proceed_logistics_pipeline": "FlightExplorer"
-        }
-    )
+    "Planner",
+    evaluate_extraction_sanity,
+    {
+        "short_circuit_exit": "DossierCompositor",
+        "proceed_logistics_pipeline": "FlightExplorer"  # Must be a single node string name
+    }
+)
     
     # 4. Fan-out / Parallel execution:
     # Planner -> FlightExplorer & HotelExplorer run in parallel

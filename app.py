@@ -1,23 +1,31 @@
 
 import sys
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-# ... then your normal imports continue below:
-import streamlit as st
-from graph import travel_planner_application
+# ---------------------------------------------------------------------------
+# SQLite Patch for Streamlit Cloud / ChromaDB
+# ---------------------------------------------------------------------------
+try:
+    __import__("pysqlite3")
+    sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+except ImportError:
+    pass
+
 import os
 import time
 from datetime import date
-
 import streamlit as st
 from dotenv import load_dotenv
 
+# Load local .env file
 load_dotenv()
 
+# Sync Streamlit Cloud secrets into os.environ if running in cloud
+for key in ["MISTRAL_API_KEY", "TAVILY_API_KEY", "OPENWEATHER_API_KEY", "AVIATIONSTACK_API_KEY"]:
+    if key in st.secrets and not os.getenv(key):
+        os.environ[key] = st.secrets[key]
+
 # ---------------------------------------------------------------------------
-# Try to import the compiled graph. Kept optional so the UI still renders
-# (with a clear setup notice) even if graph.py / deps aren't wired up yet.
+# Try to import the compiled graph safely
 # ---------------------------------------------------------------------------
 GRAPH_IMPORT_ERROR = None
 try:
@@ -239,7 +247,7 @@ st.markdown(
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — optional structured hints (the real input is the query box below)
+# Sidebar — optional structured hints
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### 🎫 AI Travel Planner")
@@ -275,7 +283,7 @@ with st.sidebar:
     key_present = bool(os.getenv("MISTRAL_API_KEY"))
     st.write("MISTRAL_API_KEY:", "✅ found" if key_present else "❌ missing")
     if not key_present:
-        st.caption("Add `MISTRAL_API_KEY` to your `.env` file to enable the pipeline.")
+        st.caption("Add `MISTRAL_API_KEY` to your `.env` file or Streamlit Secrets to enable the pipeline.")
 
 
 # ---------------------------------------------------------------------------
@@ -318,8 +326,7 @@ PIPELINE_STAGES = ["Intake", "Research", "Budgeting", "Itinerary", "Compile"]
 
 
 def render_stage_track(active_index: int, total: int):
-    """Render the agent pipeline as boarding stops. active_index=-1 means idle,
-    active_index=total means fully complete."""
+    """Render the agent pipeline as boarding stops."""
     cols = st.columns([1] + [0.3, 1] * (len(PIPELINE_STAGES) - 1))
     html_parts = ['<div class="stop-track">']
     for i, stage in enumerate(PIPELINE_STAGES):
@@ -347,13 +354,13 @@ if run_clicked:
     elif not key_present:
         st.markdown(
             '<div class="error-strip">⚠️ MISTRAL_API_KEY is missing — add it to your '
-            ".env file before running the pipeline.</div>",
+            ".env file or secrets before running the pipeline.</div>",
             unsafe_allow_html=True,
         )
     elif not user_query.strip():
         st.markdown(
             '<div class="error-strip">⚠️ Type a trip request in the query box first '
-            "(e.g. \"Plan a 6-day trip from Delhi to Japan with a budget of 200000 INR.\").</div>",
+            '(e.g. "Plan a 6-day trip from Delhi to Japan with a budget of 200000 INR.").</div>',
             unsafe_allow_html=True,
         )
     else:
@@ -374,8 +381,6 @@ if run_clicked:
 
         result = None
         try:
-            # Prefer streaming so we can reflect real node progress; fall back
-            # to a plain invoke if the compiled graph doesn't support .stream().
             if hasattr(travel_planner_application, "stream"):
                 last_state = {}
                 step = 0
@@ -448,9 +453,8 @@ else:
         <div class="dossier" style="opacity:0.85;">
             <div class="stamp">PENDING</div>
             <h3>No dossier generated yet</h3>
-            <p>Fill in your trip details on the left and press
-            <strong>Generate Travel Dossier</strong> to send the brief through the
-            research, budgeting, and itinerary agents.</p>
+            <p>Fill in your trip details on the left or type directly in the query box, then press
+            <strong>Plan Trip</strong> to send the brief through the research, budgeting, and itinerary agents.</p>
         </div>
         """,
         unsafe_allow_html=True,
