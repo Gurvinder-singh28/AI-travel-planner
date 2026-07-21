@@ -1,10 +1,11 @@
-"""
-Streamlit front-end for the LangGraph multi-agent Travel Planner.
 
-Run with:
-    streamlit run app.py
-"""
+import sys
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
+# ... then your normal imports continue below:
+import streamlit as st
+from graph import travel_planner_application
 import os
 import time
 from datetime import date

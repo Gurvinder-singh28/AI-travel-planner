@@ -1,7 +1,3 @@
-"""
-Orchestrates agents using the LangGraph StateGraph API framework.
-Configures parallel execution pipelines, error handling boundaries, and execution sequences.
-"""
 
 from langgraph.graph import StateGraph, START, END
 from state import TravelState

@@ -1,6 +1,3 @@
-"""
-Main driver interface script executing the compiled LangGraph architecture.
-"""
 
 import os
 from dotenv import load_dotenv
